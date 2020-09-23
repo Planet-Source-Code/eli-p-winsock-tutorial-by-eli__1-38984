@@ -1,0 +1,226 @@
+	This is a document describing the user account settings and information that are common with windows xp/2k.
+
+First off, I'd like to discuss how to set up a user account, and a few of the most common options and commands associated with doing so.
+Even though it's quite easy just to sit down as administrator at a computer, click a couple times, type in a password, and have a working 
+user account, sometimes you don't have that GUI to work with. Say, for instance, you wanted to create a small utility that would automate the
+process of setting up user accounts on a network. And lets say this network is about 1500 miles away. How would you do this? You probably 
+wouldn't fly over to the network, and visit each individual node. No, you'd want a program that you could do this with without actually being 
+there! Here's were these commands come in. Try these commands as you read them.
+	NOTE: All the output of all these commands can be sent to a file by simply adding >filename.txt to the very end of the command
+
+	I actually go over many of XP/2k's "net" commands. these include sharing out folders, adding usernames/accounts, setting priviliges,
+starting/stopping network services, and allowing programs to run as a certain user.
+1) The NET USER commands
+	NET USER is how windows XP/2k adds users to a computer, as well as changes passwords and setting options. You can only set up limited
+	accounts using NET USER, but I'll explain how to make them admin later in the document.
+	COMMANDS:
+	/add			-adds the user. ONLY USE IF THE ACCOUNT DOESN'T EXIST AND YOU WANT TO CREATE IT.
+	/domain			-performs the operation on the domain controller (only if the computer is a domain controller)
+	/Active:YES/NO		-Specifies whether or not the account is able to accept logins (active or not)
+	/comment:"Comment text"	-Leaves a comment. I'd put things like when i made the account/what computer/and why.
+	/countrycode:nnn	-country code. It's supposed to load the language files for that country, however you may have to have the 
+				language files installed on your computer in order to use this feature.
+	/expires:NEVER		-expiration date of the account. once the date hits, goodbye account. also takes 
+				mm/dd/yyyy;dd/mm/yyyy;mmm/dd/yyy formats.
+	/fullname:"name"	-the full name of the user.
+	/homedir:path		-the path of the user's home directory. it will NOT create a directory, it has to already exist.
+	/passwordchg:YES/NO	-allows/disallows user to change their own password
+	/passwordreq:YES/NO	-specifies if there is a password required.
+	/profilepath:path	-points to the profile path in the registry.
+	/scriptpath:path	-path to the user's login script. can't be an abosulte path. must be something like:
+				%systemroot%\system32\Repl\Import\Scripts
+	/times:all		-VERY COOL. opens up a little window in time where you have a chance to use the account. if you try and
+				log in at any other time(s) than those specified, you won't be able to. limited to 1hour increments. To
+				set up a user account that can only be accessed on mondays between 4am and 5am, and wednesdays through 
+				fridays between 12noon and 6pm, use this:
+				net user USERNAME /times:M,4AM-5AM;W-F,12PM-6PM
+				(abberviations used(you can also spell them out)): M,T,W,Th,F,Sa,Su
+	/usercomment:"comment"	-specifies that an admin can change the user comments for that account.
+	/workstations:*		-Okay. this one's kinda  cool in itself. You can list up to 8 workstations that can log in as this account
+				or use the * asterisk to allow ANY computer to log in as that account.
+				example: net user USERNAME /workstations:MyPC1,MyPc2,MyPC3
+	/delete			-removes the account.
+
+		EXAMPLES:
+			
+	To create a simple limited account for the user "USER" with the password being PASSWORD:
+		net user USER PASSWORD /add
+	To change the password for the account USER to a more secure password, such as CF43KF923K
+		net user USER CF43KF923K
+	To Remove the account:
+		net user USER /delete
+	To make the account USER again, give it the password PASSWORD, disallow password changing, set the login times to Thursdays between
+	11am and 3pm, and to allow ANY user from any machine to log in:
+		net user USER PASSWORD /add /passwordchg:NO /times:Th,11am-3pm /workstations:*
+Now that we have a good understanding of that, we'll move on. 
+
+2) Now the net localgroup settings. These allow you to change the groups(access rights) in which an account is assigned.
+	
+	/comment:"Comment"	-Adds a comment for a new or existing group.
+	/domain			-performs the operation on the domain controller
+	/add			-makes the group OR adds a user to the group. Say you wanted to make a new group "MYGROUP"
+				net localgroup MYGROUP /add
+				then add an existing user to that group:
+				net localgroup MYGROUP USER /add
+	/delete			-removes a group or user from a group
+	NOTE: The name(s) you add to a group must be seperated with a space.
+	COMMON GROUPS: (found using net localgroup:
+		Administrators		-all access to all types of options
+		Backup Operators	-A type of local or global group that contains the user rights you need to back up and restore files 
+					and folders. Members of the Backup Operators group can back up and restore files and folders 
+					regardless of ownership, permissions, encryption, or auditing settings.
+		Debugger Users
+		Guests			-very limited accounts.
+		HelpServiceGroup
+		Network Configuration Operators
+		Power Users
+		Remote Desktop Users
+		Replicator
+		Users			-fairly limited accounts. all permissions specified by admin
+	EXAMPLE:	
+		Set up the user account "USER" to be an administrator:
+			net localgroup Administrator USER /add
+3) And now for the net view command! This one allows you to see a list of the domains/shares/and/or resources being shared by a computer.
+	\\IP or NAME		-shows the shared resources you want to view
+	/domain			-specifies the domain for which you want to view available computers if you don't use this, it'll show all
+				the domains on the network
+	/network:sw		-displays all the available servers on A NetWare network.
+	EXAMPLE:
+		View all the shares (both resource and NetBIOS/BEUI on the local machine
+			net view \\127.0.0.1
+			or
+			net view \\MYMACHINENAME
+
+4) Net Accounts. A wonderful little command that updates the user accounts database and modifies password and logon requirements for ALL accounts.
+	/forcelogoff:NO		-sets the number of minutes to wait before ending a user's session with the server. 
+	/minpwlen:number	-the minimum password length for all accounts
+	/maxpwage:Unlimited	-sets the number of days a user's password is valid. has to be longer than minpwage
+	/minpwage:days		-This sets the number of days MINIMUM ebfore a user can change their password. Theorectically you can set it
+				to UP TO 49,710 days.
+	/uniquepw:number	-user can't repeat password for the specified number of password changes.
+	/domain			-performs the operation on the domain controller, otherwise it'll only be performed on the local machine
+	
+	EXAMPLE:
+		Make all accounts have a MINIMUM password length of 6 and a MAXIMUM password length of 14, and they must change it every
+		12 days.
+	net accounts /winpwlen:6 /macpwlen:14 maxpwage:12
+
+5) The NET USE command connects and/or disconnects a user from a shared resource, as well as displays info about the connections.
+	Devicename		-assigns a name to connect to the resource(disk and print only) or specifies the device to be disconnected.
+	\\IP\sharename		-Specifies the computer name(in place of IP) and the shared resource.
+	\volume			-Specifies the NetWare Volume on the server. have to have client service for netware installed and running.
+	password		-the password needed to connect to the shared resource. use * to make a prompt for the pass.
+	\user			-specifies a different name with which the connection will be made
+	DomainName		-specifies another domain
+	UserName		-specifies the user name with which to log on
+	DottedDomainName	-specifies fully-qualified domain name for the domain where the user accont exists.
+	/savecred		-stores provided credntials for resuse
+	/smartcard		-network connection is to use credentials on a smart card
+	/delete			-cancels specified network connect. use * asterisk to cancel ALL network connections.
+	/Persisntant:YES/NO	-YES saves all conneions as they are made, NO does not.
+	/home			-connects to the home directory
+	
+	EXAMPLE:
+		COnnect to 4.64.115.255 share MyShare
+	net use \\4.64.115.255\MyShare
+		Disconnect from MyShare
+	net use \\4.64.115.255\MyShare /delete
+		Map (add the drive to My Computer) networked drive
+	net use * \\4.64.115.255\MyShare
+
+6) Net Session is used to view/disconnect from connections
+	\\ip			-lists connections
+	/delete			-dosconnects connection
+	
+	EXAMPLE:
+		view all network connections
+	net session
+		Disconnect all network sessions
+	net session /delete		
+		delete only only specified connection 4.64.115.255
+	net session 4.64.115.255 /delete
+
+7) Net Group is for adding, displyaing, or modifying global groups in DOMAINS only
+	groupname		-specifies the name of the group to add/exapnd/or remove.
+	/comment:"comment"	-adds a comment. wow what a surprise there.
+	/domain			-performs the operation on the domain controller/otherwise just on local machine
+	/add			-adds a group (or user) to the group.
+	/delete			-removes a group or user from the group.
+
+	EXAMPLE:	
+		To add a new group MYGROUP to the domain:
+	net group MYGROUP /add /domain
+		to add a few new users NEWUSER1, NEWUSER2, and NEWUSER3 to the group
+	net group MYGROUP NEWUSER1 NEWUSER2 NEWUSER3 /add
+
+8) Net share is for managing shared resources. Say, for example, you wanted to share/disallow a shared resource (netBIOS)
+	/users:number		-maximum number of users on shared resource at any one time
+	/unlimited		-unlimited users on shared directory at any one time
+	/remark:"Text"		-leaves a comment on the share
+	/cache:mode		-Automatic:enables offline client caching with automatic reintegration
+				manual: enables offline lient caching with manual reintegration
+				no: advises client that offline cahcing is not appropriate :)
+	/delete 		-removes share
+	
+	EXAMPLE:
+		To share the entire F: directory
+	net share SHARENAME=F:\
+		To stop sharing F:
+	net share SHARENAME /delete
+		NOTE: If you do share a folder using net share, it is my experience that it gives complete read/write access to the share :)
+
+9) Net Stop / Net Start / Net Pause /Net Continue start and stop or pause network services. Services that can be paused have an *asterisk 
+next to them
+These include:
+	-alerter			warns about access and security issues.
+	-browser			maintains up-to-datelist of computers on the network and list of programs that request it
+	-"Client Service for netware"	only if it's installed
+	-clipbook			cut/copy/paste text/graphics/docs over network
+	-dhcp client			can't stop this service
+	-file replication		file replication service
+	-messenger			enables computer to recieve messages.
+       *-netlogon			verifies logon requests and controls domain-wide replication
+       *-"nt LM security suppoert provider"	Only if it's installed
+	-"Remote Access Connection Manager"	only if it's installed
+	-"Routing and remote access"	starts/stops this service
+	-rpclocator			allows distributd application to use the RPC name service
+       *-schedule			task scheduler
+       *-server				share server resources over network
+	-spooler			print spool service.
+	-"TCP/IP NetBIOS Helper"	enables NetBIOS over TCP/IP
+	-UPS				Uninterruptable power supply
+       *-Workstation			if stopped, computer can't access networked resources
+
+10) net name is used in conjunction with the messenger service. the messenger service must be started for messages to be recieved/sent. 
+	NAMES CAN ONLY BE UP TO 15 CHARACTERS!
+	/add			-adds a name or "alias" to the messenger service not required
+	/delete			-removes an alias from the messenger service
+
+	EXAMPLE:
+		once the messenger service is started, view all names in messenger service:
+	net name
+		once the messenger service is started, add a name "USERNAME" to your service:
+	net name USERNAME
+		remove name "USERNAME" from messenger service
+	net name USERNAME /delete
+
+11) net print is used to view/delay/or cancel print jobs in a print queue
+	\\ip			-REQUIRED. can be computer name
+	\QueueName		-if no specified queue, lists all of them
+	/hold			-delays the job, allowing other jobs to pass it
+	/release		-realeases /hold job
+	/delete			-delete specified print job
+
+	EXAMPLE:
+		view all print jobs on 4.64.115.255
+	net print \\4.64.115.255
+
+12) net computer is used to add a computer to the domain
+	\\computername		-specifies what computer we're talking about. can also use ip addresses.
+	/add			-add computer to domain
+
+That's all this time. Now you know the most typical and useful commands for both local and remote administration (remote only when applied correctly!).
+Enjoy!
+-eli-
+
+	
